@@ -1,6 +1,9 @@
 import { Router } from 'express';
 
-import { enqueueExpireAccrualsJob } from './controllers/bonus.controller';
+import {
+  enqueueExpireAccrualsJob,
+  spendUserBonus,
+} from './controllers/bonus.controller';
 import {
   getUserBonusTransactions,
   getUserById,
@@ -14,4 +17,5 @@ router.get('/health', (_req, res) => {
 
 router.get('/users/:id', getUserById);
 router.get('/users/:id/bonus-transactions', getUserBonusTransactions);
+router.post('/users/:id/spend', spendUserBonus);
 router.post('/jobs/expire-accruals', enqueueExpireAccrualsJob);

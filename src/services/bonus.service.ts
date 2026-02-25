@@ -1,5 +1,13 @@
 import { BonusTransaction } from '../models/BonusTransaction';
 
+type AppError = Error & { status?: number };
+
+function createAppError(message: string, status: number): AppError {
+  const error = new Error(message) as AppError;
+  error.status = status;
+  return error;
+}
+
 export async function getUserBalance(userId: string): Promise<number> {
   const accruals = await BonusTransaction.findAll({
     where: {
@@ -16,19 +24,20 @@ export async function getUserBalance(userId: string): Promise<number> {
   return balance;
 }
 
-export async function spendBonus(
-  userId: string,
-  amount: number,
-  requestId: string,
-): Promise<void> {
-  // TODO: выполнить списание в рамках транзакции
-  // TODO: защититься от двойного списания по requestId (идемпотентность)
-  // TODO: проверить текущий доступный баланс перед списанием
-  void userId;
-  void amount;
-  void requestId;
+export async function spendBonus(userId: string, amount: number): Promise<void> {
+  // Legacy-набросок: намеренно наивная реализация для задания.
+  // Здесь специально нет транзакции, защиты от гонок и идемпотентности.
+  const balance = await getUserBalance(userId);
 
-  const error = new Error('Not implemented') as Error & { status: number };
-  error.status = 501;
-  throw error;
+  if (balance < amount) {
+    throw createAppError('Not enough bonus', 400);
+  }
+
+  await BonusTransaction.create({
+    user_id: userId,
+    type: 'spend',
+    amount,
+    expires_at: null,
+    request_id: null,
+  });
 }
