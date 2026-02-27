@@ -49,3 +49,14 @@ docker compose down -v
 7. Какие компромиссы вы приняли в рамках ограничения `4–6 часов`?
 - Использование отдельных запрос в бд на проверку дублирующихся транзакций, чтобы возвращать ответ `{ "success": true, "duplicated": true }` корректно;
 - Написание отдельной функции `expireAccruals` для работы с данными;
+
+## Запуск тестов
+```bash
+docker compose exec api npm test # для запуска всех тестов
+docker compose exec api npm test queue # тест для очереди
+docker compose exec api npm test idempotency # проверка на создание дублей / идентичных запросов
+docker compose exec api npm test concurrency # тест на конкурентные запросы
+docker compose exec api npm test accrual # тест на баланс пользователя
+```
+
+[Скриншот успешного прохождения всех сценариев](./screenshot.png)
