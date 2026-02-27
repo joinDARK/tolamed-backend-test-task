@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response } from "express";
 
-import { bonusQueue } from '../queue';
-import { spendBonus } from '../services/bonus.service';
+import { bonusQueue } from "../queue";
+import { spendBonus } from "../services/bonus.service";
 
 type AppError = Error & { status?: number };
 
@@ -19,13 +19,21 @@ export async function spendUserBonus(
   try {
     const amount = Number(req.body?.amount);
 
-    if (!Number.isInteger(amount) || amount <= 0) {
-      throw createAppError('amount must be a positive integer', 400);
+    // Получаем Idempotency-Key или requestId
+    const request_id: string | undefined =
+      req.header("Idempotency-Key") ?? req.body?.requestId;
+
+    if (!request_id) {
+      throw createAppError("request id not found", 400);
     }
 
-    await spendBonus(req.params.id, amount);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw createAppError("amount must be a positive integer", 400);
+    }
 
-    res.json({ success: true });
+    const duplicated = await spendBonus(req.params.id, amount, request_id);
+
+    res.json({ success: true, duplicated });
   } catch (error) {
     next(error);
   }
@@ -37,9 +45,20 @@ export async function enqueueExpireAccrualsJob(
   next: NextFunction,
 ): Promise<void> {
   try {
-    await bonusQueue.add('expireAccruals', {
-      createdAt: new Date().toISOString(),
-    });
+    await bonusQueue.add(
+      "expireAccruals",
+      {
+        createdAt: new Date().toISOString(),
+      },
+      {
+        jobId: "expire-accruals",
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 1000,
+        },
+      },
+    );
 
     res.json({ queued: true });
   } catch (error) {
